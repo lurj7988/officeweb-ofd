@@ -1,25 +1,25 @@
 <template>
   <el-container style="width:100vw; height: 100vh;">
     <el-header style="background:#F5F5F5;display: flex; height: 40px; border: 1px solid #e8e8e8; align-items: center;">
-      <div class="upload-icon" @click="uploadFile">
+      <!-- <div class="upload-icon" @click="uploadFile">
         <div class="upload-icon">打开OFD</div>
         <font-awesome-icon icon="cloud-upload-alt"/>
         <input type="file" ref="file" class="hidden" accept=".ofd"
                @change="fileChanged">
-      </div>
+      </div> -->
 
-      <div class="upload-icon" @click="uploadPdfFile">
+      <!-- <div class="upload-icon" @click="uploadPdfFile">
         <div class="upload-icon">PDF2OFD</div>
         <font-awesome-icon icon="cloud-upload-alt"/>
         <input type="file" ref="pdfFile" class="hidden" accept=".pdf"
                @change="pdfFileChanged">
-      </div>
+      </div> -->
 
-      <div style="display: flex;align-items: center" v-if="ofdObj">
-        <div class="upload-icon" style="margin-left: 10px" @click="downPdf" v-if="ofdBase64">
+      <div style="display: flex;align-items: center;margin: auto;" v-if="ofdObj">
+        <!-- <div class="upload-icon" style="margin-left: 10px" @click="downPdf" v-if="ofdBase64">
           下载PDF
           <font-awesome-icon icon="download"/>
-        </div>
+        </div> -->
 
         <div class="scale-icon" style="margin-left: 10px" @click="plus">
           <font-awesome-icon icon="search-plus"/>
@@ -51,7 +51,7 @@
 
     </el-header>
     <el-main style="height: auto;background: #808080;;padding: 0" v-loading="loading">
-      <div id="leftMenu"
+      <!-- <div id="leftMenu"
           class="left-section">
         <div class="text-icon" @click="demo(1)">
           <p>电子发票</p>
@@ -68,7 +68,7 @@
         <div class="text-icon" @click="demo(4)">
           <p>多页文档</p>
         </div>
-      </div>
+      </div> -->
       <div class="main-section"
           id="content" ref="contentDiv" @mousewheel="scrool">
       </div>
@@ -156,7 +156,7 @@
 <script>
 
 import {parseOfdDocument, renderOfd, renderOfdByScale, digestCheck, getPageScale, setPageScale} from "@/utils/ofd/ofd";
-import * as JSZipUtils from "jszip-utils";
+//import * as JSZipUtils from "jszip-utils";
 
 export default {
   name: 'HelloWorld',
@@ -182,17 +182,27 @@ export default {
   },
 
   mounted() {
-    this.screenWidth = document.body.clientWidth - document.getElementById('leftMenu').getBoundingClientRect().width;
+    //this.screenWidth = document.body.clientWidth - document.getElementById('leftMenu').getBoundingClientRect().width;
+    this.screenWidth = document.body.clientWidth
     let that = this;
     this.$refs.contentDiv.addEventListener('scroll', this.scrool);
     window.onresize = () => {
       return (() => {
-        that.screenWidth = (document.body.clientWidth - 88);
+        //that.screenWidth = (document.body.clientWidth - 88);
         const divs = renderOfd(that.screenWidth, that.ofdObj);
         that.displayOfdDiv(divs);
       })()
     }
-
+    let ofdFile = "http://localhost:8080/ofd/ofd.ofd";
+    // JSZipUtils.getBinaryContent(ofdFile, function (err, data) {
+    //   if (err) {
+    //     console.log(err)
+    //   } else {
+    //     let base64String = btoa(String.fromCharCode.apply(null, new Uint8Array(data)));
+    //     that.ofdBase64 = base64String;
+    //   }
+    // });
+    this.getOfdDocumentObj(ofdFile, this.screenWidth);
   },
 
   methods: {
@@ -233,87 +243,87 @@ export default {
       this.title = title;
     },
 
-    downOfd(pdfBase64) {
-      let that = this;
-      this.loading = true;
-      this.$axios({
-        method: "post",
-        url: "https://51shouzu.xyz/api/ofd/convertOfd",
-        data: {
-          pdfBase64,
-        }
-      }).then(response => {
-        that.loading = false;
-        var binary = atob(response.data.data.replace(/\s/g, ''));
-        var len = binary.length;
-        var buffer = new ArrayBuffer(len);
-        var view = new Uint8Array(buffer);
-        for (var i = 0; i < len; i++) {
-          view[i] = binary.charCodeAt(i);
-        }
-        var blob = new Blob( [view], null);
-        var url = URL.createObjectURL(blob);
-        let link = document.createElement('a')
-        link.style.display = 'none'
-        link.href = url
-        link.setAttribute('download', 'ofd.ofd')
-        document.body.appendChild(link)
-        link.click()
+    // downOfd(pdfBase64) {
+    //   let that = this;
+    //   this.loading = true;
+    //   this.$axios({
+    //     method: "post",
+    //     url: "https://51shouzu.xyz/api/ofd/convertOfd",
+    //     data: {
+    //       pdfBase64,
+    //     }
+    //   }).then(response => {
+    //     that.loading = false;
+    //     var binary = atob(response.data.data.replace(/\s/g, ''));
+    //     var len = binary.length;
+    //     var buffer = new ArrayBuffer(len);
+    //     var view = new Uint8Array(buffer);
+    //     for (var i = 0; i < len; i++) {
+    //       view[i] = binary.charCodeAt(i);
+    //     }
+    //     var blob = new Blob( [view], null);
+    //     var url = URL.createObjectURL(blob);
+    //     let link = document.createElement('a')
+    //     link.style.display = 'none'
+    //     link.href = url
+    //     link.setAttribute('download', 'ofd.ofd')
+    //     document.body.appendChild(link)
+    //     link.click()
 
-      }).catch(error => {
-        console.log(error, "error")
-        that.$alert('PDF打开失败', error, {
-          confirmButtonText: '确定',
-          callback: action => {
-            this.$message({
-              type: 'info',
-              message: `action: ${ action }`
-            });
-          }
-        });
-      });
-    },
+    //   }).catch(error => {
+    //     console.log(error, "error")
+    //     that.$alert('PDF打开失败', error, {
+    //       confirmButtonText: '确定',
+    //       callback: action => {
+    //         this.$message({
+    //           type: 'info',
+    //           message: `action: ${ action }`
+    //         });
+    //       }
+    //     });
+    //   });
+    // },
 
-    downPdf() {
-      let that = this;
-      this.loading = true;
-      this.$axios({
-        method: "post",
-        url: "https://51shouzu.xyz/api/ofd/convertPdf",
-        data: {
-          ofdBase64: this.ofdBase64
-        }
-      }).then(response => {
-        that.loading = false;
-        var binary = atob(response.data.data.replace(/\s/g, ''));
-        var len = binary.length;
-        var buffer = new ArrayBuffer(len);
-        var view = new Uint8Array(buffer);
-        for (var i = 0; i < len; i++) {
-          view[i] = binary.charCodeAt(i);
-        }
-        var blob = new Blob( [view], { type: "application/pdf" });
-        var url = URL.createObjectURL(blob);
-        let link = document.createElement('a')
-        link.style.display = 'none'
-        link.href = url
-        link.setAttribute('download', 'ofd.pdf')
-        document.body.appendChild(link)
-        link.click()
+    // downPdf() {
+    //   let that = this;
+    //   this.loading = true;
+    //   this.$axios({
+    //     method: "post",
+    //     url: "https://51shouzu.xyz/api/ofd/convertPdf",
+    //     data: {
+    //       ofdBase64: this.ofdBase64
+    //     }
+    //   }).then(response => {
+    //     that.loading = false;
+    //     var binary = atob(response.data.data.replace(/\s/g, ''));
+    //     var len = binary.length;
+    //     var buffer = new ArrayBuffer(len);
+    //     var view = new Uint8Array(buffer);
+    //     for (var i = 0; i < len; i++) {
+    //       view[i] = binary.charCodeAt(i);
+    //     }
+    //     var blob = new Blob( [view], { type: "application/pdf" });
+    //     var url = URL.createObjectURL(blob);
+    //     let link = document.createElement('a')
+    //     link.style.display = 'none'
+    //     link.href = url
+    //     link.setAttribute('download', 'ofd.pdf')
+    //     document.body.appendChild(link)
+    //     link.click()
 
-      }).catch(error => {
-        console.log(error, "error")
-        that.$alert('OFD打开失败', error, {
-          confirmButtonText: '确定',
-          callback: action => {
-            this.$message({
-              type: 'info',
-              message: `action: ${ action }`
-            });
-          }
-        });
-      });
-    },
+    //   }).catch(error => {
+    //     console.log(error, "error")
+    //     that.$alert('OFD打开失败', error, {
+    //       confirmButtonText: '确定',
+    //       callback: action => {
+    //         this.$message({
+    //           type: 'info',
+    //           message: `action: ${ action }`
+    //         });
+    //       }
+    //     });
+    //   });
+    // },
 
     plus() {
       setPageScale(++this.scale);
@@ -355,136 +365,137 @@ export default {
       ele?this.pageIndex=contentDiv.childElementCount:'';
     },
 
-    demo(value) {
-      let ofdFile = null;
-      switch (value) {
-        case 1:
-          ofdFile = '999.ofd';
-          break;
-        case 2:
-          ofdFile = 'n.ofd';
-          break;
-        case 3:
-          ofdFile = 'h.ofd';
-          break;
-        case 4:
-          ofdFile = '2.ofd';
-          break;
-      }
-      let that = this;
-      JSZipUtils.getBinaryContent(ofdFile, function (err, data) {
-        if (err) {
-          console.log(err)
-        } else {
-          let base64String = btoa(String.fromCharCode.apply(null, new Uint8Array(data)));
-          that.ofdBase64 = base64String;
-        }
-      });
-      this.getOfdDocumentObj(ofdFile, this.screenWidth);
+    // demo(value) {
+    //   let ofdFile = null;
+    //   switch (value) {
+    //     case 1:
+    //       ofdFile = '999.ofd';
+    //       break;
+    //     case 2:
+    //       ofdFile = 'n.ofd';
+    //       break;
+    //     case 3:
+    //       ofdFile = 'h.ofd';
+    //       break;
+    //     case 4:
+    //       ofdFile = '2.ofd';
+    //       break;
+    //   }
+    //   let that = this;
+    //   JSZipUtils.getBinaryContent(ofdFile, function (err, data) {
+    //     if (err) {
+    //       console.log(err)
+    //     } else {
+    //       let base64String = btoa(String.fromCharCode.apply(null, new Uint8Array(data)));
+    //       that.ofdBase64 = base64String;
+    //     }
+    //   });
+    //   this.getOfdDocumentObj(ofdFile, this.screenWidth);
 
-    },
+    // },
 
-    uploadFile() {
-      this.file = null;
-      this.$refs.file.click();
-    },
-    fileChanged() {
-      this.file = this.$refs.file.files[0];
-      let ext = this.file.name.replace(/.+\./, "");
-      if (["ofd"].indexOf(ext) === -1) {
-        this.$alert('error', '仅支持ofd类型', {
-          confirmButtonText: '确定',
-          callback: action => {
-            this.$message({
-              type: 'info',
-              message: `action: ${ action }`
-            });
-          }
-        });
-        return;
-      }
-      if (this.file.size > 100 * 1024 * 1024) {
-        this.$alert('error', '文件大小需 < 100M', {
-          confirmButtonText: '确定',
-          callback: action => {
-            this.$message({
-              type: 'info',
-              message: `action: ${ action }`
-            });
-          }
-        });
-        return;
-      }
-      let that = this;
-      let reader = new FileReader();
-      reader.readAsDataURL(this.file);
-      reader.onload = function (e) {
-        that.ofdBase64 = e.target.result.split(',')[1];
-      }
-      this.getOfdDocumentObj(this.file, this.screenWidth);
-      this.$refs.file.value = null;
-    },
+    // uploadFile() {
+    //   this.file = null;
+    //   this.$refs.file.click();
+    // },
+    // fileChanged() {
+    //   this.file = this.$refs.file.files[0];
+    //   console.log(this.file);
+    //   let ext = this.file.name.replace(/.+\./, "");
+    //   if (["ofd"].indexOf(ext) === -1) {
+    //     this.$alert('error', '仅支持ofd类型', {
+    //       confirmButtonText: '确定',
+    //       callback: action => {
+    //         this.$message({
+    //           type: 'info',
+    //           message: `action: ${ action }`
+    //         });
+    //       }
+    //     });
+    //     return;
+    //   }
+    //   if (this.file.size > 100 * 1024 * 1024) {
+    //     this.$alert('error', '文件大小需 < 100M', {
+    //       confirmButtonText: '确定',
+    //       callback: action => {
+    //         this.$message({
+    //           type: 'info',
+    //           message: `action: ${ action }`
+    //         });
+    //       }
+    //     });
+    //     return;
+    //   }
+    //   let that = this;
+    //   let reader = new FileReader();
+    //   reader.readAsDataURL(this.file);
+    //   reader.onload = function (e) {
+    //     that.ofdBase64 = e.target.result.split(',')[1];
+    //   }
+    //   this.getOfdDocumentObj(this.file, this.screenWidth);
+    //   this.$refs.file.value = null;
+    // },
 
-    uploadPdfFile() {
-      this.pdfFile = null;
-      this.$refs.pdfFile.click();
-    },
-    pdfFileChanged() {
-      this.pdfFile = this.$refs.pdfFile.files[0];
-      let ext = this.pdfFile.name.replace(/.+\./, "");
-      if (["pdf"].indexOf(ext) === -1) {
-        this.$alert('error', '仅支持pdf类型', {
-          confirmButtonText: '确定',
-          callback: action => {
-            this.$message({
-              type: 'info',
-              message: `action: ${ action }`
-            });
-          }
-        });
-        return;
-      }
-      if (this.pdfFile.size > 100 * 1024 * 1024) {
-        this.$alert('error', '文件大小需 < 100M', {
-          confirmButtonText: '确定',
-          callback: action => {
-            this.$message({
-              type: 'info',
-              message: `action: ${ action }`
-            });
-          }
-        });
-        return;
-      }
-      let that = this;
-      let reader = new FileReader();
-      reader.readAsDataURL(this.pdfFile);
-      reader.onload = function (e) {
-        let pdfBase64 = e.target.result.split(',')[1];
-        that.downOfd(pdfBase64);
-      }
-      this.$refs.pdfFile.value = null;
-    },
+    // uploadPdfFile() {
+    //   this.pdfFile = null;
+    //   this.$refs.pdfFile.click();
+    // },
+    // pdfFileChanged() {
+    //   this.pdfFile = this.$refs.pdfFile.files[0];
+    //   let ext = this.pdfFile.name.replace(/.+\./, "");
+    //   if (["pdf"].indexOf(ext) === -1) {
+    //     this.$alert('error', '仅支持pdf类型', {
+    //       confirmButtonText: '确定',
+    //       callback: action => {
+    //         this.$message({
+    //           type: 'info',
+    //           message: `action: ${ action }`
+    //         });
+    //       }
+    //     });
+    //     return;
+    //   }
+    //   if (this.pdfFile.size > 100 * 1024 * 1024) {
+    //     this.$alert('error', '文件大小需 < 100M', {
+    //       confirmButtonText: '确定',
+    //       callback: action => {
+    //         this.$message({
+    //           type: 'info',
+    //           message: `action: ${ action }`
+    //         });
+    //       }
+    //     });
+    //     return;
+    //   }
+    //   let that = this;
+    //   let reader = new FileReader();
+    //   reader.readAsDataURL(this.pdfFile);
+    //   reader.onload = function (e) {
+    //     let pdfBase64 = e.target.result.split(',')[1];
+    //     that.downOfd(pdfBase64);
+    //   }
+    //   this.$refs.pdfFile.value = null;
+    // },
 
 
     getOfdDocumentObj(file, screenWidth) {
       let that = this;
-      let t = new Date().getTime();
+      //let t = new Date().getTime();
       this.loading = true;
       parseOfdDocument({
         ofd: file,
         success(res) {
-          console.log(res)
-          let t1 = new Date().getTime();
-          console.log('解析ofd',t1 - t);
+          //console.log(res)
+          //let t1 = new Date().getTime();
+          //console.log('解析ofd',t1 - t);
           that.ofdObj = res[0];
           that.pageCount = res[0].pages.length;
           const divs = renderOfd(screenWidth, res[0]);
-          let t2 = new Date().getTime();
-          console.log('xml转svg', t2 - t1)
+          //let t2 = new Date().getTime();
+          //console.log('xml转svg', t2 - t1)
           that.displayOfdDiv(divs);
-          let t3 = new Date().getTime();
-          console.log('svg渲染到页面', t3 - t2);
+          //let t3 = new Date().getTime();
+          //console.log('svg渲染到页面', t3 - t2);
           that.loading = false;
         },
         fail(error) {
@@ -701,7 +712,7 @@ export default {
   overflow: hidden;
 }
 
-.left-section {
+/* .left-section {
   position: fixed;
   width: 88px;
   height: 100%;
@@ -710,11 +721,11 @@ export default {
   align-items: center;
   display: flex;
   flex-direction: column
-}
+} */
 
 .main-section {
   padding-top: 20px;
-  margin-left:88px;
+  /* margin-left:88px; */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -746,7 +757,7 @@ export default {
     font-family: simsun;
   }
 
-  .left-section {
+  /* .left-section {
     position: fixed;
     width: 0px;
     height: 100%;
@@ -755,11 +766,11 @@ export default {
     align-items: center;
     display: none;
     flex-direction: column;
-  }
+  } */
 
   .main-section {
     padding-top: 20px;
-    margin-left:0px;
+    /* margin-left:0px; */
     display: flex;
     flex-direction: column;
     align-items: center;
