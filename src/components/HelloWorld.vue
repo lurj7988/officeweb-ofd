@@ -193,7 +193,6 @@ export default {
         that.displayOfdDiv(divs);
       })()
     }
-    let ofdFile = "http://localhost:8080/ofd/ofd.ofd";
     // JSZipUtils.getBinaryContent(ofdFile, function (err, data) {
     //   if (err) {
     //     console.log(err)
@@ -202,10 +201,28 @@ export default {
     //     that.ofdBase64 = base64String;
     //   }
     // });
-    this.getOfdDocumentObj(ofdFile, this.screenWidth);
+
+    var queryString = document.location.search.substring(1);
+    var params = this.parseQueryString(queryString);
+    var file = "file" in params ? params.file : "";
+    if (file) {
+      this.getOfdDocumentObj(file, this.screenWidth);
+    }
   },
 
   methods: {
+    parseQueryString(query) {
+      var parts = query.split("&");
+      var params = Object.create(null);
+      for (var i = 0, ii = parts.length; i < ii; ++i) {
+        var param = parts[i].split("=");
+        var key = param[0].toLowerCase();
+        var value = param.length > 1 ? param[1] : null;
+        params[decodeURIComponent(key)] = decodeURIComponent(value);
+      }
+      return params;
+    },
+
     scrool() {
       let scrolled = this.$refs.contentDiv.firstElementChild?.getBoundingClientRect()?.top - 60;
       let top = 0
