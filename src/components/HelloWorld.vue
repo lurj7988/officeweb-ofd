@@ -204,7 +204,7 @@ export default {
 
     var queryString = document.location.search.substring(1);
     var params = this.parseQueryString(queryString);
-    var file = "file" in params ? "../../" + params.file : "";
+    var file = "file" in params ? "../" + params.file : "";
     if (file) {
       this.getOfdDocumentObj(file, this.screenWidth);
     }
