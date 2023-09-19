@@ -38,6 +38,7 @@ export const unzipOfd = function (file) {
 
 export const getDocRoots = async function (zip) {
     const data = await getJsonFromXmlContent(zip, 'OFD.xml');
+    // console.log(data);
     const docbodys = data['json']['ofd:OFD']['ofd:DocBody'];
     let array = [];
     array = array.concat(docbodys);
@@ -49,6 +50,7 @@ export const parseSingleDoc = async function ([zip, array]) {
     for (let docbody of array) {
         if (docbody) {
             let res = await doGetDocRoot(zip, docbody);
+            // console.log('res', res);
             res = await getDocument(res);
             res = await getDocumentRes(res);
             res = await getPublicRes(res);
@@ -57,8 +59,23 @@ export const parseSingleDoc = async function ([zip, array]) {
             docs.push(res);
         }
     }
+    // console.log('docs', docs);
     return docs;
 }
+
+const Uint8ToBase64 = function (u8Arr) {
+    var CHUNK_SIZE = 0xf000; //arbitrary number
+    var index = 0;
+    var length = u8Arr.length;
+    var result = "";
+    var slice;
+    while (index < length) {
+      slice = u8Arr.subarray(index, Math.min(index + CHUNK_SIZE, length));
+      result += String.fromCharCode.apply(null, slice);
+      index += CHUNK_SIZE;
+    }
+    return btoa(result);
+  };
 
 export const doGetDocRoot = async function (zip, docbody) {
     let docRoot = docbody['ofd:DocRoot'];
@@ -66,6 +83,7 @@ export const doGetDocRoot = async function (zip, docbody) {
     const doc = docRoot.split('/')[0];
     const signatures = docbody['ofd:Signatures'];
     const stampAnnot = await getSignature(zip, signatures, doc);
+    // console.log('stampAnnot', stampAnnot);
     let stampAnnotArray = {};
     for (const stamp of stampAnnot) {
         if (stamp.sealObj && Object.keys(stamp.sealObj).length > 0) {
@@ -80,8 +98,9 @@ export const doGetDocRoot = async function (zip, docbody) {
                     }
                     stampAnnotArray[stamp.stampAnnot['@_PageRef']].push({type: 'ofd', obj: stampObj, stamp});
                 }
-            } else if (stamp.sealObj.type === 'png') {
-                let img = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, stamp.sealObj.ofdArray));
+            } else if (stamp.sealObj.type === 'png' || stamp.sealObj.type === 'gif' || stamp.sealObj.type === 'jpg' || stamp.sealObj.type === 'svg' || stamp.sealObj.type === 'bmp') { //兼容gif、jpg、svg、bmp
+                // let img = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, stamp.sealObj.ofdArray));
+                let img = "data:image/png;base64," + Uint8ToBase64(stamp.sealObj.ofdArray);
                 let stampArray = [];
                 stampArray = stampArray.concat(stamp.stampAnnot);
                 for (const annot of stampArray) {
@@ -96,6 +115,7 @@ export const doGetDocRoot = async function (zip, docbody) {
             }
         }
     }
+    // console.log('stampAnnotArray', stampAnnotArray);
     return [zip, doc, docRoot, stampAnnotArray];
 }
 
@@ -165,6 +185,7 @@ export const getDocumentRes = async function ([zip, doc, Document, stampAnnot, a
     let fontResObj = {};
     let drawParamResObj = {};
     let multiMediaResObj = {};
+    let compositeGraphicUnits = [];
     if (documentResPath) {
         if (documentResPath.indexOf(doc) == -1) {
             documentResPath = `${doc}/${documentResPath}`;
@@ -175,12 +196,13 @@ export const getDocumentRes = async function ([zip, doc, Document, stampAnnot, a
             fontResObj = await getFont(documentResObj);
             drawParamResObj = await getDrawParam(documentResObj);
             multiMediaResObj = await getMultiMediaRes(zip, documentResObj, doc);
+            compositeGraphicUnits = getCompositeObject(documentResObj);
         }
     }
-    return [zip, doc, Document, stampAnnot, annotationObjs, fontResObj, drawParamResObj, multiMediaResObj];
+    return [zip, doc, Document, stampAnnot, annotationObjs, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits];
 }
 
-export const getPublicRes = async function ([zip, doc, Document, stampAnnot, annotationObjs, fontResObj, drawParamResObj, multiMediaResObj]) {
+export const getPublicRes = async function ([zip, doc, Document, stampAnnot, annotationObjs, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits]) {
     let publicResPath = Document['ofd:CommonData']['ofd:PublicRes'];
     if (publicResPath) {
         if (publicResPath.indexOf(doc) == -1) {
@@ -195,12 +217,13 @@ export const getPublicRes = async function ([zip, doc, Document, stampAnnot, ann
             drawParamResObj = Object.assign(drawParamResObj, drawParamObj);
             let multiMediaObj = await getMultiMediaRes(zip, publicResObj, doc);
             multiMediaResObj = Object.assign(multiMediaResObj, multiMediaObj);
+            compositeGraphicUnits = compositeGraphicUnits.concat(getCompositeObject(publicResObj));
         }
     }
-    return [zip, doc, Document, stampAnnot, annotationObjs, fontResObj, drawParamResObj, multiMediaResObj];
+    return [zip, doc, Document, stampAnnot, annotationObjs, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits];
 }
 
-export const getTemplatePage = async function ([zip, doc, Document, stampAnnot, annotationObjs, fontResObj, drawParamResObj, multiMediaResObj]) {
+export const getTemplatePage = async function ([zip, doc, Document, stampAnnot, annotationObjs, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits]) {
     let templatePages = Document['ofd:CommonData']['ofd:TemplatePage'];
     let array = [];
     array = array.concat(templatePages);
@@ -211,10 +234,10 @@ export const getTemplatePage = async function ([zip, doc, Document, stampAnnot, 
             tpls[Object.keys(pageObj)[0]] = pageObj[Object.keys(pageObj)[0]];
         }
     }
-    return [zip, doc, Document, stampAnnot, annotationObjs, tpls, fontResObj, drawParamResObj, multiMediaResObj];
+    return [zip, doc, Document, stampAnnot, annotationObjs, tpls, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits];
 }
 
-export const getPage = async function ([zip, doc, Document, stampAnnot, annotationObjs, tpls, fontResObj, drawParamResObj, multiMediaResObj]) {
+export const getPage = async function ([zip, doc, Document, stampAnnot, annotationObjs, tpls, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits]) {
     let pages = Document['ofd:Pages']['ofd:Page'];
     let array = [];
     array = array.concat(pages);
@@ -242,7 +265,8 @@ export const getPage = async function ([zip, doc, Document, stampAnnot, annotati
         'stampAnnot': stampAnnot,
         fontResObj,
         drawParamResObj,
-        multiMediaResObj
+        multiMediaResObj,
+        compositeGraphicUnits
     };
 }
 
@@ -321,6 +345,21 @@ const getMultiMediaRes = async function (zip, res, doc) {
     return multiMediaResObj;
 }
 
+const getCompositeObject = function (res) {
+    const compositeGraphicUnits = res["ofd:CompositeGraphicUnits"];
+    let compositeGraphicUnitsArray = [];
+    if (compositeGraphicUnits) {
+      let array = [];
+      array = array.concat(compositeGraphicUnits["ofd:CompositeGraphicUnit"]);
+      for (const item of array) {
+        if (item) {
+          compositeGraphicUnitsArray.push(item);
+        }
+      }
+    }
+    return compositeGraphicUnitsArray;
+}
+
 const parsePage = async function (zip, obj, doc) {
     let pagePath = obj['@_BaseLoc'];
     if (pagePath.indexOf(doc) == -1) {
@@ -376,7 +415,8 @@ const getSignatureData = async function (zip, signature, signatureID) {
     }
     let sealObj = await parseSesSignature(zip, signedValue);
     const checkMethod = data['json']['ofd:Signature']['ofd:SignedInfo']['ofd:References']['@_CheckMethod'];
-    global.toBeChecked = new Map();
+    // 修复多签章被覆盖的情况
+    global.toBeChecked = global.toBeChecked ? global.toBeChecked : new Map();
     let arr = new Array();
     data['json']['ofd:Signature']['ofd:SignedInfo']['ofd:References']['ofd:Reference'].forEach(async reference=>{
         if(Object.keys(reference).length==0 || Object.keys(reference['@_FileRef']).length==0){

@@ -127,7 +127,7 @@ export const calPageBoxScale = function (document, page) {
 
 
 
-export const renderPage = function (pageDiv, page, tpls, fontResObj, drawParamResObj, multiMediaResObj) {
+export const renderPage = function (pageDiv, page, tpls, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits) {
     const pageId = Object.keys(page)[0];
     const template = page[pageId]['json']['ofd:Template'];
     if (template) {
@@ -136,7 +136,7 @@ export const renderPage = function (pageDiv, page, tpls, fontResObj, drawParamRe
         array = array.concat(layers);
         for (let layer of array) {
             if (layer) {
-                renderLayer(pageDiv, fontResObj, drawParamResObj, multiMediaResObj, layer, false);
+                renderLayer(pageDiv, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, layer, false);
             }
         }
     }
@@ -145,13 +145,13 @@ export const renderPage = function (pageDiv, page, tpls, fontResObj, drawParamRe
     array = array.concat(contentLayers);
     for (let contentLayer of array) {
         if (contentLayer) {
-            renderLayer(pageDiv, fontResObj, drawParamResObj, multiMediaResObj, contentLayer, false);
+            renderLayer(pageDiv, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, contentLayer, false);
         }
     }
     if (page[pageId].stamp) {
         for (const stamp of page[pageId].stamp) {
           if (stamp.type === 'ofd') {
-            renderSealPage(pageDiv, stamp.obj.pages, stamp.obj.tpls, true, stamp.stamp.stampAnnot, stamp.obj.fontResObj, stamp.obj.drawParamResObj, stamp.obj.multiMediaResObj, stamp.stamp.sealObj.SES_Signature, stamp.stamp.signedInfo);
+            renderSealPage(pageDiv, stamp.obj.pages, stamp.obj.tpls, true, stamp.stamp.stampAnnot, stamp.obj.fontResObj, stamp.obj.drawParamResObj, stamp.obj.multiMediaResObj, compositeGraphicUnits, stamp.stamp.sealObj.SES_Signature, stamp.stamp.signedInfo);
           } else if (stamp.type === 'png') {
               let sealBoundary = converterBox(stamp.obj.boundary);
               const oid = Array.isArray(stamp.stamp.stampAnnot)?stamp.stamp.stampAnnot[0]['pfIndex']:stamp.stamp.stampAnnot['pfIndex'];
@@ -162,12 +162,12 @@ export const renderPage = function (pageDiv, page, tpls, fontResObj, drawParamRe
     }
     if (page[pageId].annotation) {
         for (const annotation of page[pageId].annotation) {
-            renderAnnotation(pageDiv, annotation, fontResObj, drawParamResObj, multiMediaResObj);
+            renderAnnotation(pageDiv, annotation, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits);
         }
     }
 }
 
-const renderAnnotation = function (pageDiv, annotation, fontResObj, drawParamResObj, multiMediaResObj) {
+const renderAnnotation = function (pageDiv, annotation, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits) {
     let div = document.createElement('div');
     div.setAttribute('style', `overflow: hidden;z-index:${annotation['pfIndex']};position:relative;`)
     let boundary = annotation['appearance']['@_Boundary'];
@@ -176,12 +176,12 @@ const renderAnnotation = function (pageDiv, annotation, fontResObj, drawParamRes
         div.setAttribute('style', `overflow: hidden;z-index:${annotation['pfIndex']};position:absolute; left: ${divBoundary.x}px; top: ${divBoundary.y}px; width: ${divBoundary.w}px; height: ${divBoundary.h}px`)
     }
     const contentLayer = annotation['appearance'];
-    renderLayer(div, fontResObj, drawParamResObj, multiMediaResObj, contentLayer, false);
+    renderLayer(div, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, contentLayer, false);
     pageDiv.appendChild(div);
 
 }
 
-const renderSealPage = function (pageDiv, pages, tpls, isStampAnnot, stampAnnot, fontResObj, drawParamResObj, multiMediaResObj, SES_Signature, signedInfo) {
+const renderSealPage = function (pageDiv, pages, tpls, isStampAnnot, stampAnnot, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, SES_Signature, signedInfo) {
     for (const page of pages) {
         const pageId = Object.keys(page)[0];
         let stampAnnotBoundary = {x: 0, y: 0, w: 0, h: 0};
@@ -201,7 +201,7 @@ const renderSealPage = function (pageDiv, pages, tpls, isStampAnnot, stampAnnot,
             array = array.concat(layers);
             for (let layer of array) {
                 if (layer) {
-                    renderLayer(div, fontResObj, drawParamResObj, multiMediaResObj, layer,  isStampAnnot);
+                    renderLayer(div, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, layer,  isStampAnnot);
                 }
             }
         }
@@ -210,14 +210,15 @@ const renderSealPage = function (pageDiv, pages, tpls, isStampAnnot, stampAnnot,
         array = array.concat(contentLayers);
         for (let contentLayer of array) {
             if (contentLayer) {
-                renderLayer(div, fontResObj, drawParamResObj, multiMediaResObj, contentLayer, isStampAnnot);
+                renderLayer(div, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, contentLayer, isStampAnnot);
             }
         }
         pageDiv.appendChild(div);
     }
 }
 
-const renderLayer = function (pageDiv, fontResObj, drawParamResObj, multiMediaResObj, layer, isStampAnnot) {
+const renderLayer = function (pageDiv, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, layer, isStampAnnot) {
+    // console.log('layer',layer);
     let fillColor = null;
     let strokeColor = null;
     let lineWith = converterDpi(0.353);
@@ -246,8 +247,10 @@ const renderLayer = function (pageDiv, fontResObj, drawParamResObj, multiMediaRe
         }
     }
     const imageObjects = layer['ofd:ImageObject'];
+    // console.log('imageObjects',imageObjects);
     let imageObjectArray = [];
     imageObjectArray = imageObjectArray.concat(imageObjects);
+    // console.log('imageObjectArray',imageObjectArray);
     for (const imageObject of imageObjectArray) {
         if (imageObject) {
             let element = renderImageObject(pageDiv.style.width, pageDiv.style.height, multiMediaResObj, imageObject)
@@ -272,6 +275,30 @@ const renderLayer = function (pageDiv, fontResObj, drawParamResObj, multiMediaRe
             pageDiv.appendChild(svg);
         }
     }
+    const compositeObjects = layer['ofd:CompositeObject'];
+    let compositeObjectArray = [];
+    compositeObjectArray = compositeObjectArray.concat(compositeObjects);
+    for (const compositeObject of compositeObjectArray) {
+      if (compositeObject) {
+        for (const compositeGraphicUnit of compositeGraphicUnits) {
+          if (compositeGraphicUnit['@_ID'] === compositeObject['@_ResourceID']) {
+            const currentCompositeObjectAlpha = compositeObject['@_Alpha'];
+            const currentCompositeObjectBoundary = compositeObject['@_Boundary'];
+            const currentCompositeObjectCTM = compositeObject['@_CTM'];
+            renderLayer(pageDiv, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, compositeGraphicUnit['ofd:Content'], false, currentCompositeObjectAlpha, currentCompositeObjectBoundary, currentCompositeObjectCTM);
+            break;
+          }
+        }
+      }
+    }
+    const pageBlocks = layer['ofd:PageBlock'];
+    let pageBlockArray = [];
+    pageBlockArray = pageBlockArray.concat(pageBlocks);
+    for (const pageBlock of pageBlockArray) {
+      if (pageBlock) {
+        renderLayer(pageDiv, fontResObj, drawParamResObj, multiMediaResObj, compositeGraphicUnits, pageBlock, isStampAnnot);
+      }
+    }    
 }
 
 export const renderImageObject = function (pageWidth, pageHeight, multiMediaResObj, imageObject){

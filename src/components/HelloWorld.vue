@@ -537,9 +537,9 @@ export default {
       for (const div of divs) {
         contentDiv.appendChild(div)
       }
-      for(let ele of document.getElementsByName('seal_img_div')) {
-        this.addEventOnSealDiv(ele, JSON.parse(ele.dataset.sesSignature), JSON.parse(ele.dataset.signedInfo));
-      }
+      // for(let ele of document.getElementsByName('seal_img_div')) {
+      //   this.addEventOnSealDiv(ele, JSON.parse(ele.dataset.sesSignature), JSON.parse(ele.dataset.signedInfo));
+      // }
     },
 
     addEventOnSealDiv(div, SES_Signature, signedInfo) {
